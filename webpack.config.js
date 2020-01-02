@@ -129,12 +129,3 @@ module.exports = {
     modules: ['node_modules', 'loaders']
   }
 };
-
-if (IS_DEVELOPMENT) {
-  module.exports.module.rules.unshift({
-    test: /\.tsx?/,
-    exclude: DEVGL,
-    use: [prettier, tslint],
-    enforce: 'pre'
-  });
-}

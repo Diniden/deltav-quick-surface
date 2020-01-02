@@ -1,14 +1,12 @@
-import { Demo } from "./demo";
+import { QuickSurface } from '../src';
 
 async function start() {
   const container = document.getElementById("main");
   if (!container) return;
 
-  const app = new Demo({
+  new QuickSurface({
     container
   });
-
-  await app.init();
 }
 
 start();

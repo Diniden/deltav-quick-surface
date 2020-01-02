@@ -1,10 +1,10 @@
 {
   "author": {
-    "name": "<REPLACE ME>",
-    "email": "<REPLACE ME>",
-    "url": "<REPLACE ME>"
+    "name": "Diniden",
+    "email": "diniden@outlook.com",
+    "url": "diniden.com"
   },
-  "name": "<REPLACE ME>",
+  "name": "deltav-quick-surface",
   "version": "1.0.0",
   "main": "index.js",
   "types": "src/index.d.ts",
