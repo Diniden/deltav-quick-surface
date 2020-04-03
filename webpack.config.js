@@ -65,7 +65,7 @@ if (IS_PRODUCTION) {
   externals = [];
 
   // We are bundling a library so set the output targets correctly
-  library = 'network-bubble-chart';
+  library = 'deltav-quick-surface';
   libraryTarget = 'umd';
 
   // We should minify and mangle our distribution for npm
@@ -127,5 +127,18 @@ module.exports = {
 
   resolveLoader: {
     modules: ['node_modules', 'loaders']
+  },
+
+  optimization: IS_DEVELOPMENT ? undefined : {
+    minify: false,
   }
 };
+
+if (IS_DEVELOPMENT) {
+  module.exports.module.rules.unshift({
+    test: /\.tsx?/,
+    use: [prettier, tslint],
+    enforce: 'pre'
+  });
+}
+
