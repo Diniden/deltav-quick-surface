@@ -252,6 +252,42 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
   }
 
   /**
+   * This retrieves all event handlers for a given key to be applied to a given layer. This will wrap the handlers to
+   * make the handlers Queue their response to be output
+   */
+  private getEventHandlers(key: string[]) {
+    // TODO
+  }
+
+  /**
+   * This creates the event handlers that reflects the
+   */
+  private createEventHandlerQueue() {
+    // Make a list of all event names we will process
+    const handlerNames: (keyof IQuickSurface<TLookup>)[] = [
+      "onMouseClick",
+      "onMouseDown",
+      "onMouseMove",
+      "onMouseOut",
+      "onMouseOver",
+      "onMouseUp",
+      "onMouseUpOutside",
+      "onTap",
+      "onTouchAllEnd",
+      "onTouchAllOut",
+      "onTouchDown",
+      "onTouchMove",
+      "onTouchOut",
+      "onTouchOut",
+      "onTouchOver",
+      "onTouchUp",
+      "onTouchUpOutside",
+    ];
+
+    // We convert each handler group into a handler that queues and aggregates it's information
+  }
+
+  /**
    * Generates the layers that will be needed to render the data.
    */
   private createLayerInitializer<T extends Instance>(
