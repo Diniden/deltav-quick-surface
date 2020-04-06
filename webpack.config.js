@@ -129,9 +129,9 @@ module.exports = {
     modules: ['node_modules', 'loaders']
   },
 
-  optimization: IS_DEVELOPMENT ? undefined : {
-    minify: false,
-  }
+  optimization: IS_DEVELOPMENT ? {
+    minimize: false,
+  } : undefined
 };
 
 if (IS_DEVELOPMENT) {
