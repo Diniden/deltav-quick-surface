@@ -62,10 +62,10 @@ if (IS_DEVELOPMENT) {
 if (IS_PRODUCTION) {
   // List our external libs for the library generation so they do
   // not get bundled into ours
-  externals = [];
+  externals = ['deltav'];
 
   // We are bundling a library so set the output targets correctly
-  library = 'network-bubble-chart';
+  library = 'deltav-quick-surface';
   libraryTarget = 'umd';
 
   // We should minify and mangle our distribution for npm
@@ -127,5 +127,18 @@ module.exports = {
 
   resolveLoader: {
     modules: ['node_modules', 'loaders']
-  }
+  },
+
+  optimization: IS_DEVELOPMENT ? {
+    minimize: false,
+  } : undefined
 };
+
+if (IS_DEVELOPMENT) {
+  module.exports.module.rules.unshift({
+    test: /\.tsx?/,
+    use: [prettier, tslint],
+    enforce: 'pre'
+  });
+}
+

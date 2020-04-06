@@ -1,1 +1,3 @@
-export const CONSTANTS_NOOP = () => {};
+export const CONSTANTS_NOOP = () => {
+  /** NOOP */
+};

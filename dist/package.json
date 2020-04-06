@@ -9,5 +9,7 @@
   "main": "index.js",
   "types": "src/index.d.ts",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "deltav": "1.x.x"
+  }
 }
