@@ -1,14 +1,14 @@
 {
   "name": "deltav-quick-surface",
   "author": {
-    "name": "Diniden",
-    "email": "diniden@outlook.com",
-    "url": "http://diniden.com"
+    "name": "Vega",
+    "email": "opensource@vega.studio",
+    "url": "http://vega.studio"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Diniden/deltav-quick-surface.git",
-    "ssh": "git@github.com:Diniden/deltav-quick-surface.git"
+    "url": "https://github.com/vega-studio/deltav-quick-surface.git",
+    "ssh": "git@github.com:vega-studio/deltav-quick-surface.git"
   },
   "version": "1.1.0",
   "main": "dist/index.js",
