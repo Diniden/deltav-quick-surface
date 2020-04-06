@@ -10,7 +10,7 @@
     "url": "https://github.com/Diniden/deltav-quick-surface.git",
     "ssh": "git@github.com:Diniden/deltav-quick-surface.git"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "types": "dist/src/index.d.ts",
   "license": "MIT",
