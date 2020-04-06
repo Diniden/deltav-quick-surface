@@ -16,10 +16,11 @@ import {
 import { ArcKPI } from "./views/arc-kpi";
 import { Base } from "./views/base";
 import { Circles } from "./views/circles";
+import { InheritedDataTypes } from "./views/inherited-data-types";
 import { makeViews } from "./views/make-view";
 import { RingKPI } from "./views/ring-kpi";
 
-const DEMOS = [Circles, ArcKPI, RingKPI];
+const DEMOS = [Circles, ArcKPI, RingKPI, InheritedDataTypes];
 
 function ready(callback: Function) {
   if (typeof document === "undefined") {
