@@ -38,7 +38,6 @@
     "@types/debug": "4.1.4",
     "@types/mocha": "5.2.7",
     "@types/node": "13.11.0",
-    "@types/webgl2": "0.0.4",
     "assert": "2.0.0",
     "auto": "github:tarwich/auto",
     "babel-core": "6.26.0",
