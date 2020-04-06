@@ -1,3 +1,9 @@
+## 1.1.1
+
+## Fixed
+
+- [`FIXED`]: Updated project information to be under Vega Studio
+
 ## 1.1.0
 
 ## Added
