@@ -27,7 +27,9 @@
     "clean": "runner clean",
     "build": "runner run lib"
   },
-  "dependencies": {},
+  "dependencies": {
+    "deltav": "1.x.x"
+  },
   "devDependencies": {
     "@diniden/signal-processing": "github:diniden/signal-processing",
     "@tarwich/runner": "github:tarwich/runner",
@@ -52,7 +54,6 @@
     "css-loader": "0.28.11",
     "dat.gui": "0.7.5",
     "debug": "3.1.0",
-    "deltav": "1.38.0",
     "dotenv": "8.0.0",
     "eslint": "4.19.1",
     "eslint-config-voidray": "github:voidrayco/eslint-config-voidray",
