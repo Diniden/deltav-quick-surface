@@ -51,7 +51,7 @@ QuickSurface.instanceLayerMap.set(CircleInstance, {
     ({
       animate: {
         center: AutoEasingMethod.easeInOutCubic(500),
-        radius: AutoEasingMethod.easeBackOut(500),
+        radius: AutoEasingMethod.easeBackOut(200),
       },
       data: new InstanceProvider(),
       key: "",

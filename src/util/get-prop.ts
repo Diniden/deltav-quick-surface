@@ -1,10 +1,11 @@
 import { Lookup } from "deltav";
+import { DeepMap } from "../types";
 
 /**
  * Retrieve a property from an object using a list of keys
  */
 export function getProp<T>(
-  target: Lookup<T | undefined>,
+  target: Lookup<T | undefined> | DeepMap<any, any, T | undefined>,
   keys: string[]
 ): Lookup<T | undefined> | T | undefined {
   let current: Lookup<T | undefined> | T | undefined = target;

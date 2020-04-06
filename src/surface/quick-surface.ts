@@ -19,6 +19,7 @@ import {
   IMousePickInfo,
   Instance,
   InstanceProvider,
+  IPickInfo,
   isDefined,
   ISurfaceOptions,
   ITouchPickInfo,
@@ -26,15 +27,19 @@ import {
   Layer,
   LayerInitializer,
   Lookup,
+  onAnimationLoop,
+  PickType,
   preloadNumber,
   PromiseResolver,
   ReferenceCamera2D,
+  stopAnimationLoop,
   TextureSize,
   ViewInitializer,
   WebGLStat,
 } from "deltav";
 import {
   DeepMap,
+  isInstanceHandler,
   isInstanceType,
   isLayerInitializer,
   isLayerRef,
@@ -48,6 +53,7 @@ import { getProp } from "../util/get-prop";
 import { lookupValues } from "../util/lookup-values";
 import { loopInheritance } from "../util/loop-inheritance";
 import { mapLookupValues } from "../util/map-lookup-values";
+import { QueuedHandler } from "../util/queued-handler";
 import { setProp } from "../util/set-prop";
 
 /**
@@ -57,11 +63,43 @@ export function view(options: QuickView): QuickView {
   return options;
 }
 
+/** Specifies all of the mouse handler specific properties of cusomtizing a QuickView */
+export interface IQuickSurfaceMouseHandlers {
+  /**
+   * Specify mouse events for groups of instances.
+   */
+  onMouseOver?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseOut?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseClick?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseDown?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseUp?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseUpOutside?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+  onMouseMove?: Lookup<(info: IMousePickInfo<Instance>) => void>;
+}
+
+/** Specifies all of the touch handler specific properties of cusomtizing a QuickView */
+export interface IQuickSurfaceTouchHandlers {
+  /**
+   * Specify touch events for groups of instances
+   */
+  onTap?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchAllEnd?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchAllOut?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchDown?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchUp?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchUpOutside?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchOver?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchMove?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+  onTouchOut?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
+}
+
 /**
  * These are the options needed to get a quick surface rolling. At minimum the quick surface will only need a container
  * and some data. The configuration goes up from there.
  */
-export interface IQuickSurface<T extends Lookup<Instance[]>> {
+export interface IQuickSurface<T extends Lookup<Instance[]>>
+  extends IQuickSurfaceMouseHandlers,
+    IQuickSurfaceTouchHandlers {
   /** Sets the background color of the surface. Default is transparent. */
   background?: Color;
   /** The container to render the surface within */
@@ -99,30 +137,6 @@ export interface IQuickSurface<T extends Lookup<Instance[]>> {
    * alternative graphic for the
    */
   onNoWebGL?(): void;
-
-  /**
-   * Specify mouse events for groups of instances.
-   */
-  onMouseOver?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseOut?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseClick?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseDown?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseUp?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseUpOutside?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-  onMouseMove?: Lookup<(info: IMousePickInfo<Instance>) => void>;
-
-  /**
-   * Specify touch events for groups of instances
-   */
-  onTap?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchAllEnd?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchAllOut?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchDown?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchUp?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchUpOutside?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchOver?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchMove?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
-  onTouchOut?: Lookup<(info: ITouchPickInfo<Instance>) => void>;
 }
 
 /**
@@ -205,30 +219,32 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
   /** This is all of the refs generated for the layers that are created allowing for deeper introspection. */
   refs: DeepMap<TLookup, Instance[], ILayerRef>;
 
-  /** These are the options that built this container */
-  private options: IQuickSurfaceInternal<TLookup>;
   /** The default camera used for a view if none is specific */
   private defaultCamera = new Camera2D();
-
   /** A simple default controller for managing the default camera of the view */
   private defaultManager = new BasicCamera2DController({
     camera: this.defaultCamera,
     ignoreCoverViews: true,
     startView: ["default-view.default-view"],
   });
-
+  /** These are the event managers discovered while building the surface */
+  private eventManagers: Lookup<EventManager> = {};
+  /** This is the loop id for our event processor */
+  private eventProcessingLoopId: Promise<number>;
   /** These are the layers we produce to match the data format input */
   private layers: DeepMap<
     TLookup,
     Instance | Instance[],
     ReturnType<typeof createLayer>
   >;
-
-  /** These are the event managers discovered while building the surface */
-  private eventManagers: Lookup<EventManager> = {};
-
+  /** Contains all of the process queues for all mouse events */
+  private mouseQueuedHandlers: QueuedHandler[] = [];
+  /** These are the options that built this container */
+  private options: IQuickSurfaceInternal<TLookup>;
   /** These are the scenes generated for the Basic Surface as discovered by the input data */
   private scenes: Lookup<BasicSurfaceSceneOptions>;
+  /** Contains all of the process queues for all touch events */
+  private touchQueuedHandlers: QueuedHandler[] = [];
 
   /** A promise that can be used to wait for readiness of the surface. */
   get ready() {
@@ -252,19 +268,11 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
   }
 
   /**
-   * This retrieves all event handlers for a given key to be applied to a given layer. This will wrap the handlers to
-   * make the handlers Queue their response to be output
+   * This creates the event handler queues that will handle the
    */
-  private getEventHandlers(key: string[]) {
-    // TODO
-  }
-
-  /**
-   * This creates the event handlers that reflects the
-   */
-  private createEventHandlerQueue() {
+  private createEventHandlerQueues() {
     // Make a list of all event names we will process
-    const handlerNames: (keyof IQuickSurface<TLookup>)[] = [
+    const mouseHandlerNames: (keyof IQuickSurfaceMouseHandlers)[] = [
       "onMouseClick",
       "onMouseDown",
       "onMouseMove",
@@ -272,6 +280,9 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
       "onMouseOver",
       "onMouseUp",
       "onMouseUpOutside",
+    ];
+
+    const touchHandlerNames: (keyof IQuickSurfaceTouchHandlers)[] = [
       "onTap",
       "onTouchAllEnd",
       "onTouchAllOut",
@@ -285,6 +296,104 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
     ];
 
     // We convert each handler group into a handler that queues and aggregates it's information
+    // Mouse and touch events differ in their structure, so we aggregate each separately.
+    // First the mouse events.
+    mouseHandlerNames.forEach((handlerName) => {
+      // See if any of the named handlers exists
+      const handlerLookup = this.options[handlerName];
+      if (!handlerLookup) return;
+
+      // Since we have potential handlers for the handler name, we do a lookup through the object to find handlers
+      // associated with keys so we can apply a Queued Handler to the layer that associates with the handler that is
+      // specified
+      mapLookupValues(
+        "Handlers",
+        isInstanceHandler,
+        handlerLookup,
+        (key, instanceHandler) => {
+          // At this key point, we create a process queue to handle all of the mouse events for any layer under this
+          // key position
+          const queuedHandler = new QueuedHandler(instanceHandler);
+
+          // We aggregate all layer initializers beneath this key position and apply the appropriate handler to the
+          // layer initializer from this QueuedHandler so the layer's events will be aggregated properly.
+          const initsForKey = getProp(this.layers, key);
+          if (!initsForKey) return;
+          let layerInits: LayerInitializer[];
+
+          if (isLayerInitializer(initsForKey)) {
+            layerInits = [initsForKey];
+          } else {
+            layerInits = lookupValues(isLayerInitializer, initsForKey);
+          }
+
+          // Now that we have all layer initializers under the given key, we can apply the necessary handler to the
+          // initializer so the layer will output those events.
+          layerInits.forEach((init) => {
+            // Ensure a pick mode is established for the layer.
+            init.init[1].picking = PickType.SINGLE;
+            // Create a handler for the layer
+            init.init[1][handlerName] = queuedHandler.createHandler();
+          });
+
+          // Add the handler to our list of queued handlers
+          this.mouseQueuedHandlers.push(queuedHandler);
+        }
+      );
+    });
+
+    // Next the touch events.
+    touchHandlerNames.forEach((handlerName) => {
+      // See if any of the named handlers exists
+      const handlerLookup = this.options[handlerName];
+      if (!handlerLookup) return;
+
+      // Since we have potential handlers for the handler name, we do a lookup through the object to find handlers
+      // associated with keys so we can apply a Queued Handler to the layer that associates with the handler that is
+      // specified
+      mapLookupValues(
+        "Handlers",
+        isInstanceHandler,
+        handlerLookup,
+        (key, instanceHandler) => {
+          // At this key point, we create a process queue to handle all of the mouse events for any layer under this
+          // key position
+          const queuedHandler = new QueuedHandler(instanceHandler);
+
+          // We aggregate all layer initializers beneath this key position and apply the appropriate handler to the
+          // layer initializer from this QueuedHandler so the layer's events will be aggregated properly.
+          const initsForKey = getProp(this.layers, key);
+          if (!initsForKey) return;
+          let layerInits: LayerInitializer[];
+
+          if (isLayerInitializer(initsForKey)) {
+            layerInits = [initsForKey];
+          } else {
+            layerInits = lookupValues(isLayerInitializer, initsForKey);
+          }
+
+          // Now that we have all layer initializers under the given key, we can apply the necessary handler to the
+          // initializer so the layer will output those events.
+          layerInits.forEach((init) => {
+            // Ensure a pick mode is established for the layer.
+            init.init[1].picking = PickType.SINGLE;
+            // Create a handler for the layer
+            init.init[1][handlerName] = queuedHandler.createHandler();
+          });
+
+          // Add the handler to our list of queued handlers
+          this.touchQueuedHandlers.push(queuedHandler);
+        }
+      );
+    });
+
+    // After the queued handlers have been established, we can now create a processing loop that will take the events
+    // and process them down to a single event to call as the feedback
+    if (this.eventProcessingLoopId) {
+      stopAnimationLoop(this.eventProcessingLoopId);
+    }
+
+    this.eventProcessingLoopId = onAnimationLoop(this.handleEvents);
   }
 
   /**
@@ -605,6 +714,11 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
       this.base.destroy();
       delete this.base;
     }
+
+    // Ensure our event loop is halted
+    if (this.eventProcessingLoopId) {
+      stopAnimationLoop(this.eventProcessingLoopId);
+    }
   };
 
   /**
@@ -617,6 +731,62 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
   }
 
   /**
+   * This checks all of our created QueuedHandlers for events that have queued up for processing. This will process
+   * all of those events and pass them onto the proper callback that was assigned in the options for this surface.
+   */
+  handleEvents = () => {
+    // First handle all mouse events. Mouse and touch events must be handled separately as the structure of each event
+    // is very different.
+    for (let i = 0, iMax = this.mouseQueuedHandlers.length; i < iMax; ++i) {
+      const queuedHandler = this.mouseQueuedHandlers[i];
+      // Get all of the events that were picked up for the handler
+      const allEvents: [IPickInfo<Instance>][] = queuedHandler.process();
+      if (allEvents.length === 0) continue;
+      // Since we know this was a mouse event we can create a condensed version of all the events by simply using one
+      // of the info objects metrics and then aggregate all instances interacted with
+      const outInfo = Object.assign({}, allEvents[0][0]);
+
+      // Add in all of the instances from all of the events
+      for (let k = 1, kMax = allEvents.length; k < kMax; ++k) {
+        const [info] = allEvents[k];
+        outInfo.instances.splice(
+          outInfo.instances.length,
+          0,
+          ...info.instances
+        );
+      }
+
+      // Broadcast the event to the handler passed into QuickSurface options
+      queuedHandler.baseHandler(outInfo);
+    }
+
+    // Next handle all touch events. Mouse and touch events must be handled separately as the structure of each event
+    // is very different.
+    for (let i = 0, iMax = this.touchQueuedHandlers.length; i < iMax; ++i) {
+      const queuedHandler = this.touchQueuedHandlers[i];
+      // Get all of the events that were picked up for the handler
+      const allEvents: [IPickInfo<Instance>][] = queuedHandler.process();
+      if (allEvents.length === 0) continue;
+      // Since we know this was a mouse event we can create a condensed version of all the events by simply using one
+      // of the info objects metrics and then aggregate all instances interacted with
+      const outInfo = Object.assign({}, allEvents[0][0]);
+
+      // Add in all of the instances from all of the events
+      for (let k = 1, kMax = allEvents.length; k < kMax; ++k) {
+        const [info] = allEvents[k];
+        outInfo.instances.splice(
+          outInfo.instances.length,
+          0,
+          ...info.instances
+        );
+      }
+
+      // Broadcast the event to the handler passed into QuickSurface options
+      queuedHandler.baseHandler(outInfo);
+    }
+  };
+
+  /**
    * Initializes all elements for the surface
    */
   async init() {
@@ -625,6 +795,9 @@ export class QuickSurface<TLookup extends Lookup<Instance[]>> {
 
     // Analyze the input data and generate the providers to model the input.
     this.createProvidersAndLayers();
+    // After the layer initializers are created, we can analyze our event handlers specified and apply the appropriate
+    // events to the initializers
+    this.createEventHandlerQueues();
     // Generate the scenes
     this.createScenesAndViews();
     // We make our default font mimic the inherited font of the container to further simplify configuration.

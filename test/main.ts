@@ -6,7 +6,13 @@ import {
   InstanceProvider,
   Lookup,
 } from "deltav";
-import { QuickSurface, QuickView } from "../src";
+import {
+  InstanceHandler,
+  IQuickSurfaceMouseHandlers,
+  IQuickSurfaceTouchHandlers,
+  QuickSurface,
+  QuickView,
+} from "../src";
 import { ArcKPI } from "./views/arc-kpi";
 import { Base } from "./views/base";
 import { Circles } from "./views/circles";
@@ -52,22 +58,42 @@ async function start() {
   // Set up our data and view objects that will configure the QuickSurface
   const data: Lookup<Instance[]> = {};
   const views: Lookup<QuickView> = {};
+  const handlers: IQuickSurfaceMouseHandlers & IQuickSurfaceTouchHandlers = {};
 
   // Get the initial data from each demo and wire up each demo to it's own view
   demos.forEach((demo, i) => {
+    const demoName = `demo${i}`;
     const view = demo.view;
     // Get the dimensions of the view area.
     const bounds = getAbsolutePositionBounds(view.viewport, screenBounds, 1);
     // Set the bounds of the view area relative to the elements using the view
     bounds.x = 0;
     bounds.y = 0;
+
     // Get the data from the demo
     const demoData = demo.getData(bounds);
-    views[`demo${i}`] = view;
-    data[`demo${i}`] = demoData;
+    views[demoName] = view;
+    data[demoName] = demoData;
     (view.manager as BasicCamera2DController).startViews = [
-      `demo${i}.demo${i}`,
+      `${demoName}.${demoName}`,
     ];
+
+    // Get the handlers from the demo
+    const demoHandlers = demo.getHandlers();
+
+    // We aggregate the handlers beneath the correct handler name and under the proper demo identifier
+    for (const key in demoHandlers) {
+      const handlerName = key as
+        | keyof IQuickSurfaceTouchHandlers
+        | keyof IQuickSurfaceMouseHandlers;
+      const handlerGroup: Lookup<InstanceHandler> = handlers[handlerName] || {};
+      handlers[handlerName] = handlerGroup;
+      const demoHandlerGroup = demoHandlers[handlerName];
+
+      if (demoHandlerGroup) {
+        handlerGroup[demoName] = demoHandlerGroup;
+      }
+    }
   });
 
   // Generate the surface
@@ -75,6 +101,7 @@ async function start() {
     container,
     data,
     views,
+    ...handlers,
   });
 
   await surface.ready;

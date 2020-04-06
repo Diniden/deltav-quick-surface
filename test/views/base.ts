@@ -1,5 +1,9 @@
 import { Bounds, Instance, InstanceProvider, Lookup } from "deltav";
-import { QuickView } from "../../src";
+import {
+  IQuickSurfaceMouseHandlers,
+  IQuickSurfaceTouchHandlers,
+  QuickView,
+} from "../../src";
 
 export class Base {
   view: QuickView;
@@ -9,6 +13,10 @@ export class Base {
   }
 
   getData(_bounds: Bounds<any>): Lookup<Instance[]> {
+    return {};
+  }
+
+  getHandlers(): IQuickSurfaceMouseHandlers & IQuickSurfaceTouchHandlers {
     return {};
   }
 

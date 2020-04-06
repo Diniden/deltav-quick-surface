@@ -7,6 +7,7 @@ import {
   ILayerRef,
   Instance,
   InstanceProvider,
+  IPickInfo,
   IViewConstructionClass,
   IViewProps,
   LayerInitializer,
@@ -43,6 +44,20 @@ export type ViewDefaults = {
 };
 
 /**
+ * A base type for all handler types
+ */
+export type InstanceHandler = (info: IPickInfo<Instance>) => void;
+
+/**
+ * Typeguard for InstanceHandler lookups
+ */
+export function isInstanceHandler(
+  val: Lookup<InstanceHandler> | InstanceHandler
+): val is InstanceHandler {
+  return typeof val === "function";
+}
+
+/**
  * Typeguard for QuickView options
  */
 export function isQuickView(
@@ -54,9 +69,7 @@ export function isQuickView(
 /**
  * Typeguard for deltav LayerInitializers
  */
-export function isLayerInitializer(
-  val?: Lookup<LayerInitializer | undefined> | LayerInitializer
-): val is LayerInitializer {
+export function isLayerInitializer(val?: any): val is LayerInitializer {
   return val !== void 0 && Boolean(val.key !== void 0 && val.init);
 }
 

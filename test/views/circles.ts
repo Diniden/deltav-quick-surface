@@ -34,7 +34,71 @@ export class Circles extends Base {
     this.circles = circles;
 
     return {
-      circles,
+      circles: {
+        test: circles.slice(0, circles.length / 4),
+        split: circles.slice(circles.length / 4, (circles.length / 4) * 2),
+        up: circles.slice((circles.length / 4) * 2, (circles.length / 4) * 3),
+        circles: circles.slice((circles.length / 4) * 3, circles.length),
+      },
+    };
+  }
+
+  getHandlers(): ReturnType<Base["getHandlers"]> {
+    const radius = new Map();
+
+    return {
+      onMouseOver: {
+        circles: (info) => {
+          info.instances.forEach((circle: CircleInstance) => {
+            let r = radius.get(circle);
+
+            if (r === void 0) {
+              r = circle.radius;
+              radius.set(circle, r);
+            }
+
+            circle.radius = r + 10;
+          });
+        },
+      },
+
+      onMouseOut: {
+        circles: {
+          test: (info) => {
+            info.instances.forEach((circle: CircleInstance) => {
+              const r = radius.get(circle);
+
+              if (r !== void 0) {
+                circle.radius = r;
+              }
+
+              radius.delete(circle);
+            });
+          },
+          split: (info) => {
+            info.instances.forEach((circle: CircleInstance) => {
+              const r = radius.get(circle);
+
+              if (r !== void 0) {
+                circle.radius = r;
+              }
+
+              radius.delete(circle);
+            });
+          },
+          up: (info) => {
+            info.instances.forEach((circle: CircleInstance) => {
+              const r = radius.get(circle);
+
+              if (r !== void 0) {
+                circle.radius = r;
+              }
+
+              radius.delete(circle);
+            });
+          },
+        },
+      },
     };
   }
 

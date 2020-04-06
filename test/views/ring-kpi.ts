@@ -22,7 +22,7 @@ export class RingKPI extends Base {
   label: LabelInstance;
   mid: Vec2;
 
-  getData(bounds: Bounds<any>) {
+  getData(bounds: Bounds<any>): ReturnType<Base["getData"]> {
     this.rings = new Array(5).fill(0).map(() => {
       const color: Color = [rand(0.5, 1), rand(0.5, 1), rand(0.5, 1), 1];
 
@@ -61,9 +61,28 @@ export class RingKPI extends Base {
     });
 
     return {
-      arcs: this.rings,
+      rings: this.rings,
       label: [this.label],
       labels: this.labels,
+    };
+  }
+
+  getHandlers(): ReturnType<Base["getHandlers"]> {
+    return {
+      onMouseOver: {
+        rings: (info) => {
+          info.instances.forEach((ring: RingInstance) => {
+            ring.thickness = 10;
+          });
+        },
+      },
+      onMouseOut: {
+        rings: (info) => {
+          info.instances.forEach((ring: RingInstance) => {
+            ring.thickness = 4;
+          });
+        },
+      },
     };
   }
 
