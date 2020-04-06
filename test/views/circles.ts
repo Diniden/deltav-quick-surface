@@ -48,55 +48,69 @@ export class Circles extends Base {
 
     return {
       onMouseOver: {
-        circles: (info) => {
-          info.instances.forEach((circle: CircleInstance) => {
-            let r = radius.get(circle);
-
-            if (r === void 0) {
-              r = circle.radius;
-              radius.set(circle, r);
-            }
-
-            circle.radius = r + 10;
-          });
-        },
-      },
-
-      onMouseOut: {
         circles: {
           test: (info) => {
             info.instances.forEach((circle: CircleInstance) => {
-              const r = radius.get(circle);
+              let r = radius.get(circle);
 
-              if (r !== void 0) {
-                circle.radius = r;
+              if (r === void 0) {
+                r = circle.radius;
+                radius.set(circle, r);
               }
 
-              radius.delete(circle);
+              circle.radius = r + 10;
             });
           },
           split: (info) => {
             info.instances.forEach((circle: CircleInstance) => {
-              const r = radius.get(circle);
+              let r = radius.get(circle);
 
-              if (r !== void 0) {
-                circle.radius = r;
+              if (r === void 0) {
+                r = circle.radius;
+                radius.set(circle, r);
               }
 
-              radius.delete(circle);
+              circle.radius = r + 15;
             });
           },
           up: (info) => {
             info.instances.forEach((circle: CircleInstance) => {
-              const r = radius.get(circle);
+              let r = radius.get(circle);
 
-              if (r !== void 0) {
-                circle.radius = r;
+              if (r === void 0) {
+                r = circle.radius;
+                radius.set(circle, r);
               }
 
-              radius.delete(circle);
+              circle.radius = r + 20;
             });
           },
+          circles: (info) => {
+            info.instances.forEach((circle: CircleInstance) => {
+              let r = radius.get(circle);
+
+              if (r === void 0) {
+                r = circle.radius;
+                radius.set(circle, r);
+              }
+
+              circle.radius = r + 25;
+            });
+          },
+        },
+      },
+
+      onMouseOut: {
+        circles: (info) => {
+          info.instances.forEach((circle: CircleInstance) => {
+            const r = radius.get(circle);
+
+            if (r !== void 0) {
+              circle.radius = r;
+            }
+
+            radius.delete(circle);
+          });
         },
       },
     };
